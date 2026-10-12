@@ -204,8 +204,8 @@
 
     /* ── VIDEO DETAIL ─────────────────────────────────── */
     #detail {
-      position: fixed; inset: 0; background: var(--cream); z-index: 100;
-      display: none; flex-direction: column; overflow-y: auto;
+      position: fixed; inset: 0; background: #000; z-index: 100;
+      display: none; flex-direction: column;
     }
     #detail.open { display: flex; }
     .detail-header {
@@ -220,36 +220,39 @@
       font-size: 18px; flex-shrink: 0;
     }
     .detail-header h2 { color: #fff; font-size: 17px; font-weight: 700; line-height: 1.3; flex: 1; }
-    .detail-body { padding: 24px 20px; flex: 1; }
-    .detail-thumb {
-      width: 100%; aspect-ratio: 16/9; background: var(--dark);
-      border-radius: 16px; display: flex; align-items: center;
-      justify-content: center; margin-bottom: 20px; overflow: hidden;
+
+    /* Portrait video player — fills remaining screen height */
+    #video-player-wrap {
+      flex: 1; width: 100%; background: #000;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
     }
-    .detail-thumb-inner {
+    #video-player-wrap iframe {
+      width: 100%; height: 100%; border: none;
+    }
+    /* Placeholder when no video is set */
+    #video-placeholder {
       display: flex; flex-direction: column; align-items: center;
-      gap: 12px; color: rgba(255,255,255,0.6);
+      gap: 14px; color: rgba(255,255,255,0.55); text-align: center; padding: 30px;
     }
-    .detail-thumb-inner .play-icon {
-      width: 60px; height: 60px; background: var(--copper);
+    #video-placeholder .play-icon {
+      width: 64px; height: 64px; background: var(--copper);
       border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; font-size: 26px; color: #fff;
+      justify-content: center; font-size: 28px; color: #fff;
     }
-    .detail-thumb-inner span { font-size: 13px; }
-    .watch-btn {
-      display: block; width: 100%; background: var(--green);
-      color: #fff; border: none; border-radius: 14px;
-      padding: 17px; font-size: 16px; font-weight: 700;
-      cursor: pointer; text-align: center; margin-bottom: 20px;
-      letter-spacing: 0.04em; transition: background 0.15s;
+    #video-placeholder p { font-size: 14px; line-height: 1.5; }
+
+    /* Info strip below player */
+    .detail-info {
+      background: var(--cream); padding: 16px 20px 20px;
+      flex-shrink: 0; max-height: 38vh; overflow-y: auto;
     }
-    .watch-btn:active { background: var(--green2); }
-    .watch-btn.disabled { background: var(--grey); color: var(--muted); cursor: default; }
-    .detail-desc { font-size: 14px; line-height: 1.7; color: #444; margin-bottom: 20px; }
-    .detail-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+    .detail-info h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .detail-desc { font-size: 13px; line-height: 1.7; color: #444; margin-bottom: 12px; }
+    .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; }
     .detail-tag {
       background: var(--grey); border-radius: 20px;
-      padding: 6px 12px; font-size: 12px; font-weight: 600; color: #555;
+      padding: 5px 11px; font-size: 12px; font-weight: 600; color: #555;
     }
 
     /* ── TOAST ────────────────────────────────────────── */
@@ -366,14 +369,11 @@
     <button class="back-btn" onclick="closeDetail()">←</button>
     <h2 id="detail-title">Video</h2>
   </div>
-  <div class="detail-body">
-    <div class="detail-thumb">
-      <div class="detail-thumb-inner">
-        <div class="play-icon">▶</div>
-        <span id="detail-thumb-label">Tap to watch on YouTube</span>
-      </div>
-    </div>
-    <button class="watch-btn" id="watch-btn" onclick="watchVideo()">Watch on YouTube</button>
+  <div id="video-player-wrap">
+    <!-- iframe or placeholder injected by JS -->
+  </div>
+  <div class="detail-info">
+    <h3 id="detail-info-title"></h3>
     <p class="detail-desc" id="detail-desc"></p>
     <div class="detail-meta" id="detail-meta"></div>
   </div>
@@ -488,6 +488,16 @@ const PROGRAMMES = [
   { name:'CrossFit', icon:'🏋️', count:'6 videos' },
 ];
 
+// ── YOUTUBE ID EXTRACTOR ──────────────────────────────
+// Accepts bare IDs or any YouTube URL format
+function extractYTId(val) {
+  if (!val || val === 'PLACEHOLDER') return null;
+  const m = val.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  if (/^[A-Za-z0-9_-]{11}$/.test(val.trim())) return val.trim();
+  return null;
+}
+
 // ── STATE ─────────────────────────────────────────────
 let currentVideo = null;
 
@@ -503,43 +513,43 @@ function switchView(id, btn) {
 // ── DETAIL PANEL ──────────────────────────────────────
 function openDetail(videoData) {
   currentVideo = videoData;
-  const hasYT = YT[videoData.id] && YT[videoData.id] !== 'PLACEHOLDER';
+  const ytId = extractYTId(YT[videoData.id]);
+
   document.getElementById('detail-title').textContent = videoData.title;
+  document.getElementById('detail-info-title').textContent = videoData.title;
   document.getElementById('detail-desc').textContent = videoData.desc;
-  document.getElementById('detail-thumb-label').textContent =
-    hasYT ? 'Tap below to watch on YouTube' : 'Video coming soon';
-  const btn = document.getElementById('watch-btn');
-  if (videoData.phase === 2) {
-    btn.textContent = '🔒 Coming in Phase 2';
-    btn.className = 'watch-btn disabled';
-  } else if (!hasYT) {
-    btn.textContent = '🎬 YouTube link not set yet';
-    btn.className = 'watch-btn disabled';
-  } else {
-    btn.textContent = '▶  Watch on YouTube';
-    btn.className = 'watch-btn';
-  }
-  const meta = document.getElementById('detail-meta');
-  meta.innerHTML = `
+  document.getElementById('detail-meta').innerHTML = `
     <span class="detail-tag">⏱ ${videoData.dur}</span>
     <span class="detail-tag">${videoData.phase === 1 ? '✓ Phase 1' : '🔒 Phase 2'}</span>
     ${videoData.area ? `<span class="detail-tag">${videoData.area}</span>` : ''}
   `;
+
+  const wrap = document.getElementById('video-player-wrap');
+  if (ytId) {
+    // Embed the video — plays in-app in portrait
+    wrap.innerHTML = `<iframe
+      src="https://www.youtube.com/embed/${ytId}?autoplay=1&playsinline=1&rel=0&modestbranding=1"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+      allowfullscreen>
+    </iframe>`;
+  } else {
+    const msg = videoData.phase === 2 ? '🔒 Coming in Phase 2' : '🎬 Video link not added yet';
+    wrap.innerHTML = `<div id="video-placeholder">
+      <div class="play-icon">▶</div>
+      <p>${msg}</p>
+    </div>`;
+  }
+
   document.getElementById('detail').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
 function closeDetail() {
+  // Clear iframe to stop video playing in background
+  document.getElementById('video-player-wrap').innerHTML = '';
   document.getElementById('detail').classList.remove('open');
   document.body.style.overflow = '';
   currentVideo = null;
-}
-
-function watchVideo() {
-  if (!currentVideo) return;
-  const ytId = YT[currentVideo.id];
-  if (!ytId || ytId === 'PLACEHOLDER') { showToast('YouTube link not set yet'); return; }
-  window.open('https://www.youtube.com/watch?v=' + ytId, '_blank');
 }
 
 // ── TOAST ─────────────────────────────────────────────
