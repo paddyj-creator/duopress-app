@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1B4332">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Brú Force">
+  <link rel="manifest" href="manifest.json">
+  <title>Brú Force</title>
+  <style>
+    /* ── RESET & BASE ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:  #1B4332;
+      --green2: #2D6A4F;
+      --copper: #B87333;
+      --cream:  #FAF7F2;
+      --grey:   #E8E4DF;
+      --dark:   #1C1C1C;
+      --muted:  #6B7280;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+    html, body {
+      height: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--cream);
+      color: var(--dark);
+    }
+
+    /* ── LAYOUT ───────────────────────────────────────── */
+    #app {
+      display: flex; flex-direction: column;
+      height: 100%; height: 100dvh;
+    }
+    header {
+      background: var(--green);
+      padding: calc(12px + var(--safe-top)) 20px 12px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-brand { display: flex; flex-direction: column; }
+    .header-brand h1 {
+      color: #fff; font-size: 22px; font-weight: 800;
+      letter-spacing: 0.08em; line-height: 1;
+    }
+    .header-brand h1 span { color: var(--copper); }
+    .header-brand small { color: rgba(255,255,255,0.55); font-size: 11px; letter-spacing: 0.12em; margin-top: 2px; }
+    .header-mark { color: var(--copper); font-size: 28px; line-height: 1; }
+
+    main {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    nav {
+      background: #fff; border-top: 1px solid var(--grey);
+      padding-bottom: var(--safe-bot);
+      display: flex; flex-shrink: 0;
+    }
+    nav button {
+      flex: 1; border: none; background: none; cursor: pointer;
+      padding: 10px 4px 8px; display: flex; flex-direction: column;
+      align-items: center; gap: 3px; color: var(--muted); font-size: 10px;
+      letter-spacing: 0.04em; font-weight: 500; transition: color 0.15s;
+    }
+    nav button.active { color: var(--green); }
+    nav button svg { width: 22px; height: 22px; }
+
+    /* ── VIEWS ────────────────────────────────────────── */
+    .view { display: none; padding: 0 0 16px; min-height: 100%; }
+    .view.active { display: block; }
+
+    /* ── CARDS & TILES ────────────────────────────────── */
+    .section { padding: 20px 16px 0; }
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+    }
+    .video-list { display: flex; flex-direction: column; gap: 10px; }
+    .video-card {
+      background: #fff; border-radius: 12px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+      border: 1px solid var(--grey); cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      text-decoration: none; color: inherit;
+    }
+    .video-card:active { transform: scale(0.98); }
+    .video-card.locked { opacity: 0.55; cursor: default; }
+    .video-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--green); display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; font-size: 20px;
+    }
+    .video-card.locked .video-icon { background: var(--grey); }
+    .video-info { flex: 1; min-width: 0; }
+    .video-title {
+      font-weight: 700; font-size: 14px; line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .video-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .video-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 3px 7px; border-radius: 20px; flex-shrink: 0;
+    }
+    .badge-available { background: #D1FAE5; color: #065F46; }
+    .badge-soon { background: var(--grey); color: var(--muted); }
+
+    /* ── HOME HERO ────────────────────────────────────── */
+    .hero {
+      background: var(--green); padding: 24px 20px 22px; margin-bottom: 4px;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: 'ᚁ';
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      font-size: 72px; color: rgba(255,255,255,0.07); line-height: 1;
+      pointer-events: none;
+    }
+    .hero h2 { color: #fff; font-size: 22px; font-weight: 800; line-height: 1.25; }
+    .hero h2 em { color: var(--copper); font-style: normal; }
+    .hero p { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+
+    /* ── QUICK ACCESS ─────────────────────────────────── */
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .quick-card {
+      background: #fff; border-radius: 12px; padding: 14px 14px 12px;
+      border: 1px solid var(--grey); cursor: pointer;
+      transition: transform 0.1s; text-align: left;
+      display: flex; flex-direction: column; gap: 6px;
+      border: none; color: inherit;
+    }
+    .quick-card:active { transform: scale(0.97); }
+    .quick-card .qc-icon { font-size: 22px; }
+    .quick-card .qc-label { font-weight: 700; font-size: 13px; line-height: 1.3; }
+    .quick-card .qc-meta { font-size: 11px; color: var(--muted); }
+
+    /* ── BROWSE AREAS ─────────────────────────────────── */
+    .area-list { display: flex; flex-direction: column; gap: 10px; }
+    .area-card {
+      background: #fff; border-radius: 12px; border: 1px solid var(--grey);
+      overflow: hidden;
+    }
+    .area-header {
+      padding: 16px; display: flex; align-items: center; gap: 14px;
+      cursor: pointer; user-select: none;
+    }
+    .area-header:active { background: #f5f5f5; }
+    .area-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: var(--green); display: flex; align-items: center;
+      justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .area-label { flex: 1; }
+    .area-label strong { font-size: 15px; font-weight: 700; }
+    .area-label small { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .area-chevron { color: var(--muted); font-size: 18px; transition: transform 0.2s; }
+    .area-card.open .area-chevron { transform: rotate(90deg); }
+    .area-videos {
+      display: none; border-top: 1px solid var(--grey);
+      padding: 10px 12px 12px;
+      flex-direction: column; gap: 8px;
+    }
+    .area-card.open .area-videos { display: flex; }
+    .area-videos .video-card { border-radius: 8px; }
+
+    /* ── ROUTINES ─────────────────────────────────────── */
+    .routine-grid { display: flex; flex-direction: column; gap: 10px; }
+    .routine-card {
+      background: #fff; border-radius: 12px; border: 1px solid var(--grey);
+      padding: 16px; display: flex; align-items: center; gap: 14px;
+      cursor: pointer; transition: transform 0.1s;
+    }
+    .routine-card:active { transform: scale(0.98); }
+    .routine-card.locked { opacity: 0.55; cursor: default; }
+    .routine-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: var(--copper); display: flex; align-items: center;
+      justify-content: center; font-size: 22px; flex-shrink: 0;
+    }
+    .routine-card.locked .routine-icon { background: var(--grey); }
+    .routine-info { flex: 1; min-width: 0; }
+    .routine-title { font-weight: 700; font-size: 15px; }
+    .routine-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .routine-desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+    /* ── PROGRAMMES ───────────────────────────────────── */
+    .prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .prog-card {
+      background: #fff; border-radius: 12px; border: 1px solid var(--grey);
+      padding: 18px 14px 16px; display: flex; flex-direction: column;
+      align-items: center; text-align: center; gap: 8px; opacity: 0.6;
+    }
+    .prog-card .prog-icon { font-size: 30px; }
+    .prog-card .prog-name { font-weight: 700; font-size: 13px; }
+    .prog-card .prog-count { font-size: 11px; color: var(--muted); }
+    .prog-coming {
+      background: var(--green); color: #fff; border-radius: 12px;
+      padding: 20px; text-align: center; margin: 16px 16px 0;
+    }
+    .prog-coming h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .prog-coming p { font-size: 13px; opacity: 0.8; line-height: 1.5; }
+
+    /* ── VIDEO DETAIL ─────────────────────────────────── */
+    #detail {
+      position: fixed; inset: 0; background: var(--cream); z-index: 100;
+      display: none; flex-direction: column; overflow-y: auto;
+    }
+    #detail.open { display: flex; }
+    .detail-header {
+      background: var(--green);
+      padding: calc(14px + var(--safe-top)) 16px 14px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.15); border: none; color: #fff;
+      border-radius: 8px; width: 34px; height: 34px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .detail-header h2 { color: #fff; font-size: 17px; font-weight: 700; line-height: 1.3; flex: 1; }
+    .detail-body { padding: 24px 20px; flex: 1; }
+    .detail-thumb {
+      width: 100%; aspect-ratio: 16/9; background: var(--dark);
+      border-radius: 16px; display: flex; align-items: center;
+      justify-content: center; margin-bottom: 20px; overflow: hidden;
+    }
+    .detail-thumb-inner {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; color: rgba(255,255,255,0.6);
+    }
+    .detail-thumb-inner .play-icon {
+      width: 60px; height: 60px; background: var(--copper);
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 26px; color: #fff;
+    }
+    .detail-thumb-inner span { font-size: 13px; }
+    .watch-btn {
+      display: block; width: 100%; background: var(--green);
+      color: #fff; border: none; border-radius: 14px;
+      padding: 17px; font-size: 16px; font-weight: 700;
+      cursor: pointer; text-align: center; margin-bottom: 20px;
+      letter-spacing: 0.04em; transition: background 0.15s;
+    }
+    .watch-btn:active { background: var(--green2); }
+    .watch-btn.disabled { background: var(--grey); color: var(--muted); cursor: default; }
+    .detail-desc { font-size: 14px; line-height: 1.7; color: #444; margin-bottom: 20px; }
+    .detail-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+    .detail-tag {
+      background: var(--grey); border-radius: 20px;
+      padding: 6px 12px; font-size: 12px; font-weight: 600; color: #555;
+    }
+
+    /* ── TOAST ────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: calc(76px + var(--safe-bot)); left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--dark); color: #fff; padding: 10px 18px;
+      border-radius: 24px; font-size: 13px; font-weight: 500;
+      opacity: 0; transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none; white-space: nowrap; z-index: 200;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── SCROLLBAR ────────────────────────────────────── */
+    main::-webkit-scrollbar { width: 3px; }
+    main::-webkit-scrollbar-thumb { background: var(--grey); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ── HEADER ───────────────────────────────────────── -->
+  <header>
+    <div class="header-brand">
+      <h1>BRÚ <span>FORCE</span></h1>
+      <small>PRESSURE TESTED.</small>
+    </div>
+    <div class="header-mark">ᚁ</div>
+  </header>
+
+  <!-- ── MAIN ─────────────────────────────────────────── -->
+  <main id="main">
+
+    <!-- HOME -->
+    <div class="view active" id="view-home">
+      <div class="hero">
+        <h2>Recovery<br><em>built different.</em></h2>
+        <p>DuoPress technique videos and recovery routines — pressure tested, always to hand.</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Quick Access</div>
+        <div class="quick-grid" id="quick-grid"></div>
+      </div>
+
+      <div class="section" style="margin-top:20px">
+        <div class="section-title">Phase 1 — Now Available</div>
+        <div class="video-list" id="home-videos"></div>
+      </div>
+    </div>
+
+    <!-- BROWSE -->
+    <div class="view" id="view-browse">
+      <div class="section">
+        <div class="section-title">Browse by Body Area</div>
+        <div class="area-list" id="area-list"></div>
+      </div>
+    </div>
+
+    <!-- ROUTINES -->
+    <div class="view" id="view-routines">
+      <div class="section">
+        <div class="section-title">Recovery Routines</div>
+        <div class="routine-grid" id="routine-grid"></div>
+      </div>
+    </div>
+
+    <!-- PROGRAMMES -->
+    <div class="view" id="view-programmes">
+      <div class="prog-coming">
+        <h3>Sport Programmes</h3>
+        <p>6 sport-specific programmes coming in Phase 2 — GAA, Rugby, Soccer, Running, Cycling, and CrossFit.</p>
+      </div>
+      <div class="section" style="margin-top:20px">
+        <div class="section-title">Coming Soon</div>
+        <div class="prog-grid" id="prog-grid"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── NAV ──────────────────────────────────────────── -->
+  <nav>
+    <button class="active" data-view="home" onclick="switchView('home',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Home
+    </button>
+    <button data-view="browse" onclick="switchView('browse',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      Browse
+    </button>
+    <button data-view="routines" onclick="switchView('routines',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Routines
+    </button>
+    <button data-view="programmes" onclick="switchView('programmes',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+      </svg>
+      Programmes
+    </button>
+  </nav>
+</div>
+
+<!-- ── VIDEO DETAIL PANEL ─────────────────────────────── -->
+<div id="detail">
+  <div class="detail-header">
+    <button class="back-btn" onclick="closeDetail()">←</button>
+    <h2 id="detail-title">Video</h2>
+  </div>
+  <div class="detail-body">
+    <div class="detail-thumb">
+      <div class="detail-thumb-inner">
+        <div class="play-icon">▶</div>
+        <span id="detail-thumb-label">Tap to watch on YouTube</span>
+      </div>
+    </div>
+    <button class="watch-btn" id="watch-btn" onclick="watchVideo()">Watch on YouTube</button>
+    <p class="detail-desc" id="detail-desc"></p>
+    <div class="detail-meta" id="detail-meta"></div>
+  </div>
+</div>
+
+<!-- ── TOAST ──────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  UPDATE YOUR YOUTUBE LINKS HERE
+//  Replace 'PLACEHOLDER' with the real YouTube video ID
+//  e.g. 'dQw4w9WgXcQ'  (the part after ?v= in the URL)
+// ═══════════════════════════════════════════════════════
+const YT = {
+  // TECHNIQUE VIDEOS
+  quads:      'PLACEHOLDER',   // Quadriceps
+  itband:     'PLACEHOLDER',   // IT Band / TFL
+  hamstrings: 'PLACEHOLDER',   // Hamstrings
+  calves:     'PLACEHOLDER',   // Calves (Gastrocnemius)
+  glutes:     'PLACEHOLDER',   // Glutes / Gluteus Medius
+  lowerback:  'PLACEHOLDER',   // Lower Back / Erectors
+  neck:       'PLACEHOLDER',   // Neck & Cervical
+  traps:      'PLACEHOLDER',   // Upper Trapezius
+
+  // ROUTINES
+  post_training: 'PLACEHOLDER',  // Post-Training Recovery
+  desk:          'PLACEHOLDER',  // Desk Worker Reset
+
+  // PHASE 2 — add IDs here as you film them
+  levator:      'PLACEHOLDER',
+  shoulder:     'PLACEHOLDER',
+  pecs:         'PLACEHOLDER',
+  forearms_ext: 'PLACEHOLDER',
+  forearms_flex:'PLACEHOLDER',
+  biceps:       'PLACEHOLDER',
+  adductors:    'PLACEHOLDER',
+  soleus:       'PLACEHOLDER',
+  shins:        'PLACEHOLDER',
+  piriformis:   'PLACEHOLDER',
+  hipflexors:   'PLACEHOLDER',
+  lats:         'PLACEHOLDER',
+  thoracic:     'PLACEHOLDER',
+  morning:      'PLACEHOLDER',
+  pre_training: 'PLACEHOLDER',
+  evening:      'PLACEHOLDER',
+  upper_reset:  'PLACEHOLDER',
+  lower_reset:  'PLACEHOLDER',
+  back_spine:   'PLACEHOLDER',
+  full_body:    'PLACEHOLDER',
+};
+// ═══════════════════════════════════════════════════════
+
+// ── DATA ──────────────────────────────────────────────
+const AREAS = [
+  {
+    id: 'upper', label: 'Upper Body', icon: '💪', count: '8 videos',
+    videos: [
+      { id:'neck',       title:'Neck & Cervical',         dur:'90 sec', phase:1, emoji:'🦴', desc:'The most common complaint for desk workers, drivers, and strength athletes. Covers the sub-occipital muscles and cervical erectors — the source of most tension headaches and morning stiffness. Place, compress, hold. 90 seconds changes everything.' },
+      { id:'traps',      title:'Upper Trapezius',         dur:'90 sec', phase:1, emoji:'⛰️', desc:'Where stress lives. The upper trap carries the weight of every screen, every steering wheel, every heavy set. This technique hits the muscle belly directly — not the neck, not the shoulder, the trap itself.' },
+      { id:'levator',    title:'Levator Scapulae',        dur:'90 sec', phase:2, emoji:'🔗', desc:'The hidden culprit behind that nagging side-of-neck ache. Common in swimmers, cyclists, and anyone who sits with their head tilted.' },
+      { id:'shoulder',   title:'Posterior Deltoid',       dur:'90 sec', phase:2, emoji:'🎯', desc:'Overhead athletes and throwing sports — this is your release point. Restores shoulder rotation and reduces impingement risk.' },
+      { id:'pecs',       title:'Chest / Pectorals',       dur:'90 sec', phase:2, emoji:'🏋️', desc:'Tight pecs pull the shoulders forward and lock out thoracic extension. Release them and feel your posture reset immediately.' },
+      { id:'forearms_ext', title:'Forearms (Extensors)',  dur:'90 sec', phase:2, emoji:'🎾', desc:'For golfers, racket sport players, and rock climbers. Tennis elbow lives here. 90 seconds of compression between sessions changes the trajectory.' },
+      { id:'forearms_flex','title':'Forearms (Flexors)',  dur:'90 sec', phase:2, emoji:'✊', desc:'Grip sport athletes and desk workers both suffer here. DuoPress hits the full forearm flexor belly — something no foam roller can reach.' },
+      { id:'biceps',     title:'Biceps',                  dur:'90 sec', phase:2, emoji:'💥', desc:'Pulling sports, throwing athletes, and anyone who has experienced that deep ache at the front of the elbow after heavy training.' },
+    ]
+  },
+  {
+    id: 'lower', label: 'Lower Body', icon: '🦵', count: '10 videos',
+    videos: [
+      { id:'quads',      title:'Quadriceps',              dur:'90 sec', phase:1, emoji:'🔴', desc:'The quad is the biggest muscle group in the body and the most under-serviced by foam rollers. The DuoPress reaches into the rectus femoris and VMO — the parts that contribute to knee pain, cycling fatigue, and field sport soreness.' },
+      { id:'itband',     title:'IT Band / TFL',           dur:'90 sec', phase:1, emoji:'📍', desc:'The IT band itself cannot be released — but the TFL that feeds it can. This technique targets the tensor fasciae latae at the hip. Relief for runner\'s knee starts here, not at the knee.' },
+      { id:'hamstrings', title:'Hamstrings',              dur:'90 sec', phase:1, emoji:'⚡', desc:'The most frequently strained muscle in field sports. Three muscles, two joints, one technique. Works sitting on a chair — no mat required.' },
+      { id:'adductors',  title:'Adductors',               dur:'90 sec', phase:2, emoji:'🏈', desc:'GAA, soccer, hockey, rugby — groin strains are endemic. The DuoPress accesses the adductor longus and magnus directly. Compress, hold, and feel the tension release.' },
+      { id:'calves',     title:'Calves (Gastrocnemius)',  dur:'90 sec', phase:1, emoji:'🦵', desc:'Tight calves feed plantar fasciitis, Achilles tendinopathy, and shin splints. The gastrocnemius runs to the knee — release it high, not just at the ankle.' },
+      { id:'soleus',     title:'Calves (Soleus)',         dur:'90 sec', phase:2, emoji:'⬇️', desc:'The deeper calf muscle — runners and jumping athletes feel this more than the gastroc. Requires a slightly different technique with the knee bent.' },
+      { id:'shins',      title:'Shins / Tibialis Anterior', dur:'90 sec', phase:2, emoji:'📏', desc:'Shin splints are a DuoPress specialty. The tibialis anterior runs along the lateral shin — compress it and feel the achiness drain in under two minutes.' },
+      { id:'glutes',     title:'Glutes / Gluteus Medius', dur:'90 sec', phase:1, emoji:'🍑', desc:'Hip stability starts here. A weak or tight glute med underlies knee valgus, hip drop, and lower back pain. The DuoPress reaches the muscle belly that no foam roller can properly compress.' },
+      { id:'piriformis', title:'Piriformis',              dur:'90 sec', phase:2, emoji:'🌀', desc:'Deep in the glute, wrapping around the sciatic nerve. Piriformis tension is responsible for more \'sciatica\' than most people realise. This is the technique that converts sceptics.' },
+      { id:'hipflexors', title:'Hip Flexors',             dur:'90 sec', phase:2, emoji:'⬆️', desc:'Cyclists, desk workers, and sprinters all shorten their hip flexors chronically. The psoas and iliacus can\'t be reached by foam rollers — but the DuoPress technique gets close.' },
+    ]
+  },
+  {
+    id: 'back', label: 'Back & Core', icon: '🏛️', count: '3 videos',
+    videos: [
+      { id:'lowerback',  title:'Lower Back / Erectors',   dur:'90 sec', phase:1, emoji:'🔧', desc:'The number one complaint of strength athletes, field sport players, and desk workers alike. The lumbar erectors sit either side of the spine — the DuoPress compresses both simultaneously. Apply to a chair back, a wall, or the floor.' },
+      { id:'lats',       title:'Lats / Latissimus Dorsi', dur:'90 sec', phase:2, emoji:'🦅', desc:'Powerlifters, swimmers, and overhead athletes carry enormous lat tension. Restoring lat length improves overhead position, reduces lower back arch, and boosts pulling mechanics.' },
+      { id:'thoracic',   title:'Thoracic Spine',          dur:'90 sec', phase:2, emoji:'🧱', desc:'Thoracic extension is the antidote to a desk-worker life. The DuoPress applied across the t-spine (with a towel for comfort) releases segment-by-segment in a way no foam roller can match.' },
+    ]
+  }
+];
+
+const ROUTINES = [
+  { id:'post_training', title:'Post-Training Recovery', dur:'10 min', phase:1, emoji:'🏆', desc:'Full lower body + lats + traps. Use within 30 minutes of finishing your session.' },
+  { id:'desk',          title:'Desk Worker Reset',      dur:'6 min',  phase:1, emoji:'💻', desc:'Neck, traps, pecs, forearms, hip flexors. 3pm fix for office workers.' },
+  { id:'morning',       title:'Morning Reset',          dur:'8 min',  phase:2, emoji:'🌅', desc:'Wake up the body. Traps, neck, thoracic, hip flexors.' },
+  { id:'pre_training',  title:'Pre-Training Activation', dur:'6 min', phase:2, emoji:'⚡', desc:'Increase blood flow and release restrictions before training.' },
+  { id:'evening',       title:'Evening Wind-Down',      dur:'8 min',  phase:2, emoji:'🌙', desc:'Neck, traps, lower back, calves. Designed to drop the body into recovery mode.' },
+  { id:'upper_reset',   title:'Upper Body Reset',       dur:'10 min', phase:2, emoji:'💪', desc:'Neck, traps, shoulders, chest, forearms. Complete upper chain release.' },
+  { id:'lower_reset',   title:'Lower Body Reset',       dur:'10 min', phase:2, emoji:'🦵', desc:'Quads, hamstrings, IT band, calves, glutes.' },
+  { id:'back_spine',    title:'Back & Spine',           dur:'8 min',  phase:2, emoji:'🏛️', desc:'Thoracic, lower back, lats, piriformis.' },
+  { id:'full_body',     title:'Full Body Recovery',     dur:'12 min', phase:2, emoji:'🌟', desc:'Complete head-to-toe session. Use on rest days.' },
+];
+
+const PROGRAMMES = [
+  { name:'GAA',      icon:'🏐', count:'6 videos' },
+  { name:'Rugby',    icon:'🏉', count:'6 videos' },
+  { name:'Soccer',   icon:'⚽', count:'6 videos' },
+  { name:'Running',  icon:'🏃', count:'6 videos' },
+  { name:'Cycling',  icon:'🚴', count:'6 videos' },
+  { name:'CrossFit', icon:'🏋️', count:'6 videos' },
+];
+
+// ── STATE ─────────────────────────────────────────────
+let currentVideo = null;
+
+// ── VIEW SWITCHING ────────────────────────────────────
+function switchView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('main').scrollTop = 0;
+}
+
+// ── DETAIL PANEL ──────────────────────────────────────
+function openDetail(videoData) {
+  currentVideo = videoData;
+  const hasYT = YT[videoData.id] && YT[videoData.id] !== 'PLACEHOLDER';
+  document.getElementById('detail-title').textContent = videoData.title;
+  document.getElementById('detail-desc').textContent = videoData.desc;
+  document.getElementById('detail-thumb-label').textContent =
+    hasYT ? 'Tap below to watch on YouTube' : 'Video coming soon';
+  const btn = document.getElementById('watch-btn');
+  if (videoData.phase === 2) {
+    btn.textContent = '🔒 Coming in Phase 2';
+    btn.className = 'watch-btn disabled';
+  } else if (!hasYT) {
+    btn.textContent = '🎬 YouTube link not set yet';
+    btn.className = 'watch-btn disabled';
+  } else {
+    btn.textContent = '▶  Watch on YouTube';
+    btn.className = 'watch-btn';
+  }
+  const meta = document.getElementById('detail-meta');
+  meta.innerHTML = `
+    <span class="detail-tag">⏱ ${videoData.dur}</span>
+    <span class="detail-tag">${videoData.phase === 1 ? '✓ Phase 1' : '🔒 Phase 2'}</span>
+    ${videoData.area ? `<span class="detail-tag">${videoData.area}</span>` : ''}
+  `;
+  document.getElementById('detail').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('detail').classList.remove('open');
+  document.body.style.overflow = '';
+  currentVideo = null;
+}
+
+function watchVideo() {
+  if (!currentVideo) return;
+  const ytId = YT[currentVideo.id];
+  if (!ytId || ytId === 'PLACEHOLDER') { showToast('YouTube link not set yet'); return; }
+  window.open('https://www.youtube.com/watch?v=' + ytId, '_blank');
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── BUILD HOME ────────────────────────────────────────
+function buildHome() {
+  // Quick access (Phase 1 routines)
+  const quickData = ROUTINES.filter(r => r.phase === 1);
+  const qg = document.getElementById('quick-grid');
+  quickData.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'quick-card';
+    btn.innerHTML = `<span class="qc-icon">${r.emoji}</span><span class="qc-label">${r.title}</span><span class="qc-meta">${r.dur}</span>`;
+    btn.onclick = () => openDetail({ ...r, area: 'Routines' });
+    qg.appendChild(btn);
+  });
+
+  // Phase 1 technique videos — one per area
+  const p1 = [];
+  AREAS.forEach(a => a.videos.filter(v => v.phase === 1).forEach(v => p1.push({ ...v, area: a.label })));
+  const hv = document.getElementById('home-videos');
+  p1.forEach(v => {
+    const el = makeVideoCard(v, v.area);
+    hv.appendChild(el);
+  });
+}
+
+// ── BUILD BROWSE ──────────────────────────────────────
+function buildBrowse() {
+  const al = document.getElementById('area-list');
+  AREAS.forEach(area => {
+    const card = document.createElement('div');
+    card.className = 'area-card';
+    card.innerHTML = `
+      <div class="area-header" onclick="toggleArea(this.parentElement)">
+        <div class="area-icon">${area.icon}</div>
+        <div class="area-label">
+          <strong>${area.label}</strong>
+          <small>${area.count}</small>
+        </div>
+        <span class="area-chevron">›</span>
+      </div>
+      <div class="area-videos"></div>
+    `;
+    const vlist = card.querySelector('.area-videos');
+    area.videos.forEach(v => vlist.appendChild(makeVideoCard({ ...v, area: area.label })));
+    al.appendChild(card);
+  });
+}
+
+function toggleArea(card) {
+  card.classList.toggle('open');
+}
+
+// ── BUILD ROUTINES ────────────────────────────────────
+function buildRoutines() {
+  const rg = document.getElementById('routine-grid');
+  ROUTINES.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'routine-card' + (r.phase === 2 ? ' locked' : '');
+    el.innerHTML = `
+      <div class="routine-icon">${r.phase === 2 ? '🔒' : r.emoji}</div>
+      <div class="routine-info">
+        <div class="routine-title">${r.title}</div>
+        <div class="routine-meta">${r.dur} • ${r.phase === 1 ? 'Available now' : 'Phase 2'}</div>
+        <div class="routine-desc">${r.desc}</div>
+      </div>
+    `;
+    if (r.phase === 1) el.onclick = () => openDetail({ ...r, area: 'Routines' });
+    rg.appendChild(el);
+  });
+}
+
+// ── BUILD PROGRAMMES ──────────────────────────────────
+function buildProgrammes() {
+  const pg = document.getElementById('prog-grid');
+  PROGRAMMES.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'prog-card';
+    el.innerHTML = `
+      <div class="prog-icon">${p.icon}</div>
+      <div class="prog-name">${p.name}</div>
+      <div class="prog-count">${p.count}</div>
+    `;
+    pg.appendChild(el);
+  });
+}
+
+// ── HELPER: VIDEO CARD ────────────────────────────────
+function makeVideoCard(v) {
+  const locked = v.phase === 2;
+  const el = document.createElement('div');
+  el.className = 'video-card' + (locked ? ' locked' : '');
+  el.innerHTML = `
+    <div class="video-icon">${locked ? '🔒' : v.emoji}</div>
+    <div class="video-info">
+      <div class="video-title">${v.title}</div>
+      <div class="video-meta">${v.dur}${v.area ? ' · ' + v.area : ''}</div>
+    </div>
+    <span class="video-badge ${locked ? 'badge-soon' : 'badge-available'}">${locked ? 'Phase 2' : 'Phase 1'}</span>
+  `;
+  if (!locked) el.onclick = () => openDetail(v);
+  return el;
+}
+
+// ── BACK GESTURE (ANDROID) ────────────────────────────
+window.addEventListener('popstate', () => {
+  if (document.getElementById('detail').classList.contains('open')) {
+    closeDetail();
+    history.pushState(null, '');
+  }
+});
+history.pushState(null, '');
+
+// ── INIT ──────────────────────────────────────────────
+buildHome();
+buildBrowse();
+buildRoutines();
+buildProgrammes();
+
+// ── SERVICE WORKER ────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
