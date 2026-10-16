@@ -162,6 +162,12 @@
     }
     .area-card.open .area-videos { display: flex; }
     .area-videos .video-card { border-radius: 8px; }
+    .sub-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+      padding: 6px 4px 2px; margin-top: 4px;
+    }
+    .sub-label:first-child { margin-top: 0; }
 
     /* ── ROUTINES ─────────────────────────────────────── */
     .routine-grid { display: flex; flex-direction: column; gap: 10px; }
@@ -293,7 +299,7 @@
       </div>
 
       <div class="section" style="margin-top:20px">
-        <div class="section-title">Available Now</div>
+        <div class="section-title">Technique Videos</div>
         <div class="video-list" id="home-videos"></div>
       </div>
     </div>
@@ -554,32 +560,44 @@ function showToast(msg) {
 
 // ── BUILD HOME ────────────────────────────────────────
 function buildHome() {
-  // Quick access routines
-  const quickData = ROUTINES.slice(0, 2); // show first 2 routines
+  // Quick access — first 2 routines (available or coming soon)
+  const quickData = ROUTINES.slice(0, 2);
   const qg = document.getElementById('quick-grid');
   quickData.forEach(r => {
+    const avail = !!extractYTId(YT[r.id]);
     const btn = document.createElement('button');
     btn.className = 'quick-card';
-    btn.innerHTML = `<span class="qc-icon">${r.phase === 2 ? '🔒' : r.emoji}</span><span class="qc-label">${r.title}</span><span class="qc-meta">${r.phase === 2 ? 'Coming Soon' : r.dur}</span>`;
-    if (r.phase === 1) btn.onclick = () => openDetail({ ...r, area: 'Routines' });
+    btn.innerHTML = `<span class="qc-icon">${avail ? r.emoji : '🔒'}</span><span class="qc-label">${r.title}</span><span class="qc-meta">${avail ? r.dur : 'Coming Soon'}</span>`;
+    if (avail) btn.onclick = () => openDetail({ ...r, area: 'Routines' });
     else btn.style.opacity = '0.55';
     qg.appendChild(btn);
   });
 
-  // Available technique videos
-  const p1 = [];
-  AREAS.forEach(a => a.videos.filter(v => v.phase === 1).forEach(v => p1.push({ ...v, area: a.label })));
+  // Available Now — videos with YouTube IDs
   const hv = document.getElementById('home-videos');
-  p1.forEach(v => {
-    const el = makeVideoCard(v, v.area);
-    hv.appendChild(el);
-  });
+  const allVideos = [];
+  AREAS.forEach(a => a.videos.forEach(v => allVideos.push({ ...v, area: a.label })));
+  const available = allVideos.filter(v => extractYTId(YT[v.id]));
+  const coming    = allVideos.filter(v => !extractYTId(YT[v.id]));
+
+  if (available.length) {
+    available.forEach(v => hv.appendChild(makeVideoCard(v)));
+  }
+  if (coming.length) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-title'; lbl.style.margin = '16px 0 8px';
+    lbl.textContent = 'Coming Soon'; hv.appendChild(lbl);
+    coming.forEach(v => hv.appendChild(makeVideoCard(v)));
+  }
 }
 
 // ── BUILD BROWSE ──────────────────────────────────────
 function buildBrowse() {
   const al = document.getElementById('area-list');
   AREAS.forEach(area => {
+    const available = area.videos.filter(v => extractYTId(YT[v.id]));
+    const coming    = area.videos.filter(v => !extractYTId(YT[v.id]));
+    const availCount = available.length;
     const card = document.createElement('div');
     card.className = 'area-card';
     card.innerHTML = `
@@ -587,14 +605,27 @@ function buildBrowse() {
         <div class="area-icon">${area.icon}</div>
         <div class="area-label">
           <strong>${area.label}</strong>
-          <small>${area.count}</small>
+          <small>${availCount} available · ${coming.length} coming soon</small>
         </div>
         <span class="area-chevron">›</span>
       </div>
       <div class="area-videos"></div>
     `;
     const vlist = card.querySelector('.area-videos');
-    area.videos.forEach(v => vlist.appendChild(makeVideoCard({ ...v, area: area.label })));
+
+    if (available.length) {
+      const lbl = document.createElement('div');
+      lbl.className = 'sub-label'; lbl.textContent = 'Available Now';
+      vlist.appendChild(lbl);
+      available.forEach(v => vlist.appendChild(makeVideoCard({ ...v, area: area.label })));
+    }
+    if (coming.length) {
+      const lbl = document.createElement('div');
+      lbl.className = 'sub-label'; lbl.textContent = 'Coming Soon';
+      vlist.appendChild(lbl);
+      coming.forEach(v => vlist.appendChild(makeVideoCard({ ...v, area: area.label })));
+    }
+
     al.appendChild(card);
   });
 }
@@ -606,20 +637,37 @@ function toggleArea(card) {
 // ── BUILD ROUTINES ────────────────────────────────────
 function buildRoutines() {
   const rg = document.getElementById('routine-grid');
-  ROUTINES.forEach(r => {
+  const available = ROUTINES.filter(r => extractYTId(YT[r.id]));
+  const coming    = ROUTINES.filter(r => !extractYTId(YT[r.id]));
+
+  function addRoutineCard(r) {
+    const locked = !extractYTId(YT[r.id]);
     const el = document.createElement('div');
-    el.className = 'routine-card' + (r.phase === 2 ? ' locked' : '');
+    el.className = 'routine-card' + (locked ? ' locked' : '');
     el.innerHTML = `
-      <div class="routine-icon">${r.phase === 2 ? '🔒' : r.emoji}</div>
+      <div class="routine-icon">${locked ? '🔒' : r.emoji}</div>
       <div class="routine-info">
         <div class="routine-title">${r.title}</div>
-        <div class="routine-meta">${r.dur}${r.phase === 2 ? ' · Coming Soon' : ''}</div>
+        <div class="routine-meta">${r.dur}${locked ? ' · Coming Soon' : ''}</div>
         <div class="routine-desc">${r.desc}</div>
       </div>
     `;
-    if (r.phase === 1) el.onclick = () => openDetail({ ...r, area: 'Routines' });
+    if (!locked) el.onclick = () => openDetail({ ...r, area: 'Routines' });
     rg.appendChild(el);
-  });
+  }
+
+  if (available.length) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-title'; lbl.style.padding = '16px 16px 4px';
+    lbl.textContent = 'Available Now'; rg.appendChild(lbl);
+    available.forEach(addRoutineCard);
+  }
+  if (coming.length) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-title'; lbl.style.padding = '16px 16px 4px';
+    lbl.textContent = 'Coming Soon'; rg.appendChild(lbl);
+    coming.forEach(addRoutineCard);
+  }
 }
 
 // ── BUILD PROGRAMMES ──────────────────────────────────
@@ -638,8 +686,9 @@ function buildProgrammes() {
 }
 
 // ── HELPER: VIDEO CARD ────────────────────────────────
+// Locked = no YouTube ID set. Add an ID → automatically moves to Available Now.
 function makeVideoCard(v) {
-  const locked = v.phase === 2;
+  const locked = !extractYTId(YT[v.id]);
   const el = document.createElement('div');
   el.className = 'video-card' + (locked ? ' locked' : '');
   el.innerHTML = `
